@@ -7,10 +7,13 @@ import numpy as np
 import tensorflow as tf
 
 from scipy import misc
+import imageio
+from skimage.transform import resize
 
 from model import get_embd
 from eval.utils import calculate_roc, calculate_tar
 
+tf.compat.v1.disable_eager_execution()
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -34,8 +37,8 @@ def load_image(path, image_size):
     images = []
     images_f = []
     for path in paths:
-        img = misc.imread(path)
-        img = misc.imresize(img, [image_size, image_size])
+        img = imageio.imread(path)
+        img = resize(img, [image_size, image_size])
         # img = img[s:s+image_size, s:s+image_size, :]
         img_f = np.fliplr(img)
         img = img/127.5-1.0
@@ -88,19 +91,19 @@ if __name__ == '__main__':
     args = get_args()
     if args.mode == 'build':
         print('building...')
-        config = yaml.load(open(args.config_path))
-        images = tf.placeholder(dtype=tf.float32, shape=[None, config['image_size'], config['image_size'], 3], name='input_image')
-        train_phase_dropout = tf.placeholder(dtype=tf.bool, shape=None, name='train_phase')
-        train_phase_bn = tf.placeholder(dtype=tf.bool, shape=None, name='train_phase_last')
+        config = yaml.load(open(args.config_path), Loader=yaml.FullLoader)
+        images = tf.compat.v1.placeholder(dtype=tf.float32, shape=[None, config['image_size'], config['image_size'], 3], name='input_image')
+        train_phase_dropout = tf.compat.v1.placeholder(dtype=tf.bool, shape=None, name='train_phase')
+        train_phase_bn = tf.compat.v1.placeholder(dtype=tf.bool, shape=None, name='train_phase_last')
         embds, _ = get_embd(images, train_phase_dropout, train_phase_bn, config)
         print('done!')
-        tf_config = tf.ConfigProto(allow_soft_placement=True)
+        tf_config = tf.compat.v1.ConfigProto(allow_soft_placement=True)
         tf_config.gpu_options.allow_growth = True
-        with tf.Session(config=tf_config) as sess:
-            tf.global_variables_initializer().run()
+        with tf.compat.v1.Session(config=tf_config) as sess:
+            tf.compat.v1.global_variables_initializer().run()
             print('loading...')
-            saver = tf.train.Saver(var_list=tf.trainable_variables())
-            saver.restore(sess, args.model_path)
+            saver = tf.compat.v1.train.Saver() # https://github.com/luckycallor/InsightFace-tensorflow/issues/25
+            saver.restore(sess, tf.train.latest_checkpoint("config_ms1m_100_1006k"))
             print('done!')
 
             batch_size = config['batch_size']
@@ -110,9 +113,10 @@ if __name__ == '__main__':
             embds_f_arr = run_embds(sess, imgs_f, batch_size, config['image_size'], args.train_mode, embds, images, train_phase_dropout, train_phase_bn)
             embds_arr = embds_arr/np.linalg.norm(embds_arr, axis=1, keepdims=True)+embds_f_arr/np.linalg.norm(embds_f_arr, axis=1, keepdims=True)
             embds_arr = embds_arr/np.linalg.norm(embds_arr, axis=1, keepdims=True)
+            print(embds_arr.shape)
             print('done!')
             print('saving...')
-            embds_dict = dict(*zip(fns, list(embds_arr)))
-            pickle.dump(embds_dict, open(args.save_path, 'wb'))
-            print('done!')
+            # embds_dict = dict(*zip(fns, list(embds_arr)))
+            # pickle.dump(embds_dict, open(args.save_path, 'wb'))
+            # print('done!')
 

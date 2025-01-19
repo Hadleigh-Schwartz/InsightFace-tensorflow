@@ -5,8 +5,8 @@ from __future__ import print_function
 from collections import namedtuple
 
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
-
+# import tensorflow.contrib.slim as slim
+import tf_slim as slim
 
 class Block(namedtuple('Block', ['scope', 'unit_fn', 'args'])):
     """A named tuple describing a ResNet block.
@@ -43,13 +43,13 @@ def stack_blocks_dense(net, blocks, output_stride=None, store_non_strided_activa
     rate = 1
 
     for block in blocks:
-        with tf.variable_scope(block.scope, 'block', [net]) as sc:
+        with tf.compat.v1.variable_scope(block.scope, 'block', [net]) as sc:
             block_stride = 1
             for i, unit in enumerate(block.args):
                 if store_non_strided_activations and i == len(block.args)-1:
                     block_stride = unit.get('stride', 1)
                     unit = dict(unit, stride=1)
-                with tf.variable_scope('unit_%d' % (i+1), values=[net]):
+                with tf.compat.v1.variable_scope('unit_%d' % (i+1), values=[net]):
                     if output_stride is not None and current_stride == output_stride:
                         net = block.unit_fn(net, rate=rate, **dict(unit, stride=1))
                         rate *= unit.get('stride', 1)
@@ -78,7 +78,7 @@ def resnet_arg_scope(weight_decay=0.0001,
                      batch_norm_scale=True,
                      activation_fn=tf.nn.leaky_relu,
                      use_batch_norm=True,
-                     batch_norm_updates_collections=tf.GraphKeys.UPDATE_OPS):
+                     batch_norm_updates_collections=tf.compat.v1.GraphKeys.UPDATE_OPS):
     batch_norm_params = {
       'decay': batch_norm_decay,
       'epsilon': batch_norm_epsilon,
@@ -91,7 +91,7 @@ def resnet_arg_scope(weight_decay=0.0001,
     with slim.arg_scope(
         [slim.conv2d],
         weights_regularizer=slim.l2_regularizer(weight_decay),
-        weights_initializer=tf.contrib.layers.xavier_initializer(uniform=False),
+        weights_initializer=tf.initializers.glorot_uniform(), #tf.contrib.layers.xavier_initializer(uniform=False),
         activation_fn=activation_fn,
         normalizer_fn=slim.batch_norm if use_batch_norm else None,
         normalizer_params=batch_norm_params):

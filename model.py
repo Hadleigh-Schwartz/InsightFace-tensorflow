@@ -1,11 +1,13 @@
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
+# import tensorflow.compat.v1 as tf
+# tf.disable_v2_behavior()
+import tf_slim as slim
 
 from backbones import modifiedResNet_v2, ResNet_v2
 
 
 def get_embd(inputs, is_training_dropout, is_training_bn, config, reuse=False, scope='embd_extractor'):
-    with tf.variable_scope(scope, reuse=reuse):
+    with tf.compat.v1.variable_scope(scope, reuse=reuse):
         net = inputs
         end_points = {}
         if config['backbone_type'].startswith('resnet_v2_m'):

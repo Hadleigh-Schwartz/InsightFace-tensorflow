@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
+import tf_slim as slim
 
 from backbones import utils
 
@@ -12,7 +12,7 @@ resnet_arg_scope = utils.resnet_arg_scope
 
 @slim.add_arg_scope
 def bottleneck(inputs, depth, depth_bottleneck, stride, rate=1, outputs_collections=None, scope=None):
-    with tf.variable_scope(scope, 'bottleneck_v2', [inputs]) as sc:
+    with tf.compat.v1.variable_scope(scope, 'bottleneck_v2', [inputs]) as sc:
         depth_in = slim.utils.last_dimension(inputs.get_shape(), min_rank=4)
         preact = slim.batch_norm(inputs, activation_fn=tf.nn.leaky_relu, scope='preact')
         if depth == depth_in:
@@ -31,7 +31,7 @@ def bottleneck(inputs, depth, depth_bottleneck, stride, rate=1, outputs_collecti
 
 @slim.add_arg_scope
 def block(inputs, depth, stride, rate=1, outputs_collections=None, scope=None):
-    with tf.variable_scope(scope, 'block_v2', [inputs]) as sc:
+    with tf.compat.v1.variable_scope(scope, 'block_v2', [inputs]) as sc:
         depth_in = slim.utils.last_dimension(inputs.get_shape(), min_rank=4)
         preact = slim.batch_norm(inputs, activation_fn=tf.nn.leaky_relu, scope='preact')
         if depth == depth_in:
@@ -59,7 +59,7 @@ def resnet_v2_m(inputs,
               spatial_squeeze=True,
               reuse=None,
               scope=None):
-    with tf.variable_scope(scope, 'resnet_v2', [inputs], reuse=reuse) as sc:
+    with tf.compat.v1.variable_scope(scope, 'resnet_v2', [inputs], reuse=reuse) as sc:
         end_points_collection = sc.original_name_scope + '_end_points'
         with slim.arg_scope([slim.conv2d, bottleneck, utils.stack_blocks_dense], outputs_collections=end_points_collection):
             with slim.arg_scope([slim.batch_norm], is_training=is_training):
